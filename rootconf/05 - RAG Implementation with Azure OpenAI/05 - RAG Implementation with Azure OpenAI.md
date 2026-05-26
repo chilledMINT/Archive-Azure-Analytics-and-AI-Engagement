@@ -396,6 +396,65 @@ You will be using this function in some upcoming samples as well as in the RAG c
 
     ![A picture of running Query 3 and getting results outlined in the Query 3 results table](https://raw.githubusercontent.com/microsoft/Azure-Analytics-and-AI-Engagement/FabCon-Vienna-SQL-database-in-Fabric-Workshop/media/2025-01-15_6.38.06_AM.png)
 
+### Creating a vector index
+
+The queries above perform an exact (brute-force) scan over every row. A **vector index** lets the engine use an approximate nearest-neighbor (ANN) algorithm so that searches return in milliseconds even on large tables.
+
+1. Run the following SQL in a blank query editor in Microsoft Fabric to create a DiskANN vector index on the embeddings column:
+
+    ```SQL
+    CREATE VECTOR INDEX vec_idx_products
+    ON [SalesLT].[Product](embeddings)
+    WITH (METRIC = 'cosine', TYPE = 'diskann');
+    ```
+
+1. Now re-run the "red bike" query from earlier. The results should be identical, but the engine can now leverage the vector index for faster retrieval:
+
+    ```SQL
+    declare @search_text nvarchar(max) = 'I am looking for a red bike and I dont want to spend a lot';
+    declare @search_vector vector(1536);
+    exec dbo.create_embeddings @search_text, @search_vector output;
+    SELECT TOP(4)
+        p.ProductID, p.Name, p.chunk,
+        vector_distance('cosine', @search_vector, p.embeddings) AS distance
+    FROM [SalesLT].[Product] p
+    ORDER BY distance;
+    ```
+
+    You should see the same affordable red bikes returned as in Query 1, confirming the index is working correctly.
+
+### Hybrid filtered search
+
+With the latest vector index version, filters are applied **during** the search (iterative filtering), not after. This means you reliably get the requested number of results even with selective filters. The `VECTOR_SEARCH` function combined with `TOP ... WITH APPROXIMATE` enables this hybrid search pattern.
+
+1. Run the following SQL in a blank query editor in Microsoft Fabric to perform a hybrid vector + filter search that restricts results to red products only:
+
+    ```SQL
+    declare @search_text nvarchar(max) = 'I am looking for a red bike and I dont want to spend a lot';
+    declare @search_vector vector(1536);
+    exec dbo.create_embeddings @search_text, @search_vector output;
+
+    SELECT TOP(4) WITH APPROXIMATE
+        t.ProductID, t.Name, t.Color, t.ListPrice, t.chunk,
+        s.distance
+    FROM VECTOR_SEARCH(
+        TABLE = [SalesLT].[Product] AS t,
+        COLUMN = embeddings,
+        SIMILAR_TO = @search_vector,
+        METRIC = 'cosine'
+    ) AS s
+    WHERE t.Color = 'Red'
+    ORDER BY s.distance;
+    ```
+
+    Notice the key differences from the earlier queries:
+
+    - **`TOP(4) WITH APPROXIMATE`** tells the engine to use the vector index for an approximate nearest-neighbor search instead of an exact scan.
+    - **`VECTOR_SEARCH(...)`** is the table-valued function that drives the ANN lookup using the DiskANN index you just created.
+    - **`WHERE t.Color = 'Red'`** applies a relational filter *during* the vector search, ensuring all 4 returned rows are red products — not just the closest 4 overall with a post-filter applied.
+
+    This hybrid approach combines the speed of ANN search with the precision of traditional SQL filtering, making it ideal for production scenarios where you need both semantic relevance and exact attribute matching.
+
 ## 2. Creating a GraphQL API for RAG applications
 
 In this section of the lab, you will be deploying a GraphQL API that uses embeddings, vector similarity search, and relational data to return a set of Adventure Works products that could be used by a chat application leveraging a Large Language Model (LLM). In essence, putting all the pieces together in the previous sections.
