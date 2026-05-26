@@ -619,7 +619,7 @@ Let's alter the stored procedure to create a new flow that not only uses vector 
 
 1. Before we can start creating new stored procedures, we need to go back to the SQL Database in fabric home page. Do this by using the navigator on the left side of the page and clicking on the SQL Database icon.
 
-    ![A picture of using the navigator on the left side of the page and clicking on the SQL Database in fabric icon](https://raw.githubusercontent.com/microsoft/Azure-Analytics-and-AI-Engagement/FabCon-Vienna-SQL-database-in-Fabric-Workshop/media/selectdb.png)
+    ![A picture of using the navigator on the left side of the page and clicking on the SQL Database in fabric icon](media/selectdb.png)
 
 1. The first step in augmenting our RAG application API is to create a stored procedure that takes the retrieved products and passes them in a prompt to an Azure OpenAI Chat Completion REST endpoint. The prompt consists of telling the endpoint who they are, what products they have to work with, and the exact question that was asked by the user. 
 
