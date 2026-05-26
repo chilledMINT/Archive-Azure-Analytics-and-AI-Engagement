@@ -11,6 +11,31 @@ The final step integrates Azure OpenAI Chat Completion to deliver natural langua
 - Fabric Capacity for SQL Database in fabric, Power BI, and Copilot
 - An Azure OpenAI Service with the **gpt-4.1** and **text-embedding-ada-002** models deployed
 
+Please have the following ready:
+- An Azure subscription (free tier is fine)
+- Create a free Azure SQL Database: https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer?view=azuresql
+- Access to:
+  - One embedding model
+  - One chat model (via Azure AI Foundry / OpenAI)
+
+This setup gives the smoothest hands-on experience.
+
+> **ℹ️ Important notes**
+>
+> Access to models (Foundry/OpenAI) may vary depending on your subscription, region, or quota. If you're unable to provision models or SQL DB, that's completely fine.
+>
+> **✅ During the session**
+>
+> If your setup is ready → you can follow along hands-on. If not → you can continue by following the walkthrough and demos.
+
+## Loading the Adventure Works sample dataset
+
+Before setting up credentials, you need to load the Adventure Works sample data into your SQL Database in Fabric.
+
+1. Navigate to your SQL Database in the Fabric portal.
+1. In the database home page, click on **Get sample data** (or **Load sample data**) to populate the database with the Adventure Works tables (such as `SalesLT.Product`, `SalesLT.ProductCategory`, `SalesLT.ProductModel`, etc.).
+1. Wait for the sample data to finish loading before proceeding.
+
 ## Setup of database credential
 
 A database scoped credential is a record in the database that contains authentication information for connecting to a resource outside the database. For this lab, we will be creating one that contains the api key for connecting to Azure OpenAI services.
@@ -236,7 +261,6 @@ This next section of the lab will have you alter the Adventure Works product tab
             and d.Culture = 'en'
     where p.ProductCategoryID = c.ProductCategoryID
     and p.ProductModelID = m.ProductModelID
-    and p.ProductID = @ProductID
     ```
     
     Looking at the SQL, the text we are embedding contains the product name, product color (if available), the category name the product belongs to, the model name of the product, and the description of the product.
